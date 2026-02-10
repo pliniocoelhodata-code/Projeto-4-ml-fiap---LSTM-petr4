@@ -12,7 +12,7 @@ from src.data.preprocess import preprocess_pipeline
 # ======================
 EPOCHS = 50
 BATCH_SIZE = 32
-MODEL_PATH = "models/lstm_petr4.keras"
+WEIGHTS_PATH = "models/lstm_petr4.weights.h5"
 
 # ======================
 # Carregar dados
@@ -51,9 +51,10 @@ callbacks = [
         restore_best_weights=True
     ),
     ModelCheckpoint(
-        MODEL_PATH,
+        WEIGHTS_PATH,
         monitor="val_loss",
-        save_best_only=True
+        save_best_only=True,
+        save_weights_only=True
     )
 ]
 

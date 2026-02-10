@@ -11,7 +11,7 @@ from pathlib import Path
 LOOKBACK = 60
 HORIZON = 30
 
-MODEL_PATH = Path("models/lstm_petr4.keras")
+WEIGHTS_PATH = Path("models/lstm_petr4.weights.h5")
 SCALER_PATH = Path("models/scaler.pkl")
 
 # ======================
@@ -26,8 +26,19 @@ app = FastAPI(
 # ======================
 # Carregar modelo e scaler
 # ======================
+def build_model():
+    model = tf.keras.Sequential([
+        tf.keras.layers.Input(shape=(LOOKBACK, 1)),
+        tf.keras.layers.LSTM(32, return_sequences=True),
+        tf.keras.layers.Dropout(0.3),
+        tf.keras.layers.LSTM(16),
+        tf.keras.layers.Dense(HORIZON)
+    ])
+    return model
+
 try:
-    model = tf.keras.models.load_model(MODEL_PATH)
+    model = build_model()
+    model.load_weights(WEIGHTS_PATH)
     scaler = joblib.load(SCALER_PATH)
 except Exception as e:
     raise RuntimeError(f"Erro ao carregar modelo ou scaler: {e}")
