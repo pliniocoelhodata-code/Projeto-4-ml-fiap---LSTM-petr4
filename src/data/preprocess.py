@@ -7,6 +7,9 @@ import joblib
 LOOKBACK = 60
 HORIZON = 30
 
+SCALER_PATH = "models/scaler.pkl"
+
+
 def load_close_prices(csv_path="data/raw/petr4_raw.csv"):
     df = pd.read_csv(csv_path)
     df = df.sort_values("Date")
@@ -27,19 +30,25 @@ def train_val_test_split(series, train_size=0.7, val_size=0.15):
     return train, val, test
 
 
-def scale_series(train, val, test, scaler_path="models/scaler.pkl"):
+def scale_series(train, val, test, scaler_path=SCALER_PATH):
+
     scaler = MinMaxScaler()
+
     train_scaled = scaler.fit_transform(train)
     val_scaled = scaler.transform(val)
     test_scaled = scaler.transform(test)
 
+    # salvar scaler
     Path(scaler_path).parent.mkdir(parents=True, exist_ok=True)
     joblib.dump(scaler, scaler_path)
+
+    print(f"Scaler salvo em: {scaler_path}")
 
     return train_scaled, val_scaled, test_scaled
 
 
 def create_windows(series, lookback=LOOKBACK, horizon=HORIZON):
+
     X, y = [], []
 
     for i in range(len(series) - lookback - horizon):
@@ -50,6 +59,7 @@ def create_windows(series, lookback=LOOKBACK, horizon=HORIZON):
 
 
 def preprocess_pipeline():
+
     series = load_close_prices()
 
     train, val, test = train_val_test_split(series)
@@ -64,6 +74,7 @@ def preprocess_pipeline():
 
 
 if __name__ == "__main__":
+
     X_train, y_train, X_val, y_val, X_test, y_test = preprocess_pipeline()
 
     print("Shapes:")

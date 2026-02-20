@@ -4,6 +4,7 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense, Dropout
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 from pathlib import Path
+import joblib
 
 from src.data.preprocess import preprocess_pipeline
 
@@ -12,12 +13,21 @@ from src.data.preprocess import preprocess_pipeline
 # ======================
 EPOCHS = 50
 BATCH_SIZE = 32
+
 WEIGHTS_PATH = "models/lstm_petr4.weights.h5"
+MODEL_PATH = "models/lstm_petr4.keras"
+
+# ======================
+# Criar pasta models
+# ======================
+Path("models").mkdir(exist_ok=True)
 
 # ======================
 # Carregar dados
 # ======================
 X_train, y_train, X_val, y_val, X_test, y_test = preprocess_pipeline()
+
+# IMPORTANTE: ajuste o preprocess_pipeline para retornar o scaler também
 
 # ======================
 # Modelo
@@ -28,8 +38,6 @@ model = Sequential([
     LSTM(16),
     Dense(30)
 ])
-
-"""Foram realizados testes com diferentes arquiteturas de redes LSTM. Observou-se que a redução da complexidade do modelo, com menor número de neurônios, resultou em melhor desempenho no conjunto de teste, indicando maior capacidade de generalização. O modelo final foi selecionado com base na métrica MAE no conjunto de teste."""
 
 model.compile(
     optimizer="adam",
@@ -42,19 +50,27 @@ model.summary()
 # ======================
 # Callbacks
 # ======================
-Path("models").mkdir(exist_ok=True)
-
 callbacks = [
     EarlyStopping(
         monitor="val_loss",
         patience=8,
         restore_best_weights=True
     ),
+
+    # checkpoint de pesos (opcional)
     ModelCheckpoint(
         WEIGHTS_PATH,
         monitor="val_loss",
         save_best_only=True,
         save_weights_only=True
+    ),
+
+    # checkpoint do modelo completo (RECOMENDADO)
+    ModelCheckpoint(
+        MODEL_PATH,
+        monitor="val_loss",
+        save_best_only=True,
+        save_weights_only=False
     )
 ]
 
@@ -69,6 +85,14 @@ history = model.fit(
     batch_size=BATCH_SIZE,
     callbacks=callbacks
 )
+
+# ======================
+# Garantir salvamento final
+# ======================
+
+model.save("models/lstm_petr4", save_format="tf")
+
+
 
 # ======================
 # Avaliação
