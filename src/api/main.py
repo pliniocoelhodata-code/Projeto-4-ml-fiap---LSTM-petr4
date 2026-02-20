@@ -13,11 +13,7 @@ HORIZON = 30
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
-<<<<<<< HEAD
-MODEL_PATH = BASE_DIR / "models" / "lstm_petr4.keras"
-=======
 MODEL_PATH = BASE_DIR / "models" / "lstm_petr4"
->>>>>>> 904018b (fix: use SavedModel format and correct path)
 SCALER_PATH = BASE_DIR / "models" / "scaler.pkl"
 
 # ======================
@@ -35,7 +31,7 @@ model = None
 scaler = None
 
 # ======================
-# Startup event (IMPORTANTE)
+# Startup event
 # ======================
 @app.on_event("startup")
 def load_artifacts():
@@ -55,7 +51,6 @@ def load_artifacts():
             raise FileNotFoundError(f"Scaler não encontrado: {SCALER_PATH}")
 
         model = load_model(MODEL_PATH)
-
         scaler = joblib.load(SCALER_PATH)
 
         print("Modelo e scaler carregados com sucesso")
@@ -63,7 +58,6 @@ def load_artifacts():
     except Exception as e:
 
         print(f"ERRO CRÍTICO NO STARTUP: {e}")
-
         raise e
 
 # ======================
@@ -77,7 +71,6 @@ class PredictionRequest(BaseModel):
 # ======================
 @app.get("/")
 def health_check():
-
     return {"status": "ok"}
 
 # ======================
@@ -100,7 +93,6 @@ def predict(request: PredictionRequest):
     input_array = np.array(request.last_60_days).reshape(LOOKBACK, 1)
 
     input_scaled = scaler.transform(input_array)
-
     input_scaled = input_scaled.reshape(1, LOOKBACK, 1)
 
     prediction_scaled = model.predict(input_scaled)
@@ -109,8 +101,4 @@ def predict(request: PredictionRequest):
         prediction_scaled.reshape(-1, 1)
     ).flatten()
 
-<<<<<<< HEAD
     return {"prediction_30_days": prediction.tolist()}
-=======
-    return {"prediction_30_days": prediction.tolist()}
->>>>>>> 904018b (fix: use SavedModel format and correct path)
