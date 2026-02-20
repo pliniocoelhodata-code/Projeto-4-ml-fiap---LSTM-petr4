@@ -13,7 +13,11 @@ HORIZON = 30
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
+<<<<<<< HEAD
 MODEL_PATH = BASE_DIR / "models" / "lstm_petr4.keras"
+=======
+MODEL_PATH = BASE_DIR / "models" / "lstm_petr4"
+>>>>>>> 904018b (fix: use SavedModel format and correct path)
 SCALER_PATH = BASE_DIR / "models" / "scaler.pkl"
 
 # ======================
@@ -105,4 +109,8 @@ def predict(request: PredictionRequest):
         prediction_scaled.reshape(-1, 1)
     ).flatten()
 
+<<<<<<< HEAD
     return {"prediction_30_days": prediction.tolist()}
+=======
+    return {"prediction_30_days": prediction.tolist()}
+>>>>>>> 904018b (fix: use SavedModel format and correct path)
