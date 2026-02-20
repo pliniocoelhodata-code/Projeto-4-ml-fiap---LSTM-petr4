@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import numpy as np
 import joblib
-import tensorflow as tf
+from tensorflow.keras.models import load_model
 from pathlib import Path
 
 # ======================
@@ -11,8 +11,11 @@ from pathlib import Path
 LOOKBACK = 60
 HORIZON = 30
 
-WEIGHTS_PATH = Path("models/lstm_petr4.weights.h5")
-SCALER_PATH = Path("models/scaler.pkl")
+# Diretório raiz do projeto (funciona no Render e local)
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
+MODEL_PATH = BASE_DIR / "models" / "lstm_petr4.keras"
+SCALER_PATH = BASE_DIR / "models" / "scaler.pkl"
 
 # ======================
 # Inicialização
@@ -26,21 +29,28 @@ app = FastAPI(
 # ======================
 # Carregar modelo e scaler
 # ======================
-def build_model():
-    model = tf.keras.Sequential([
-        tf.keras.layers.Input(shape=(LOOKBACK, 1)),
-        tf.keras.layers.LSTM(32, return_sequences=True),
-        tf.keras.layers.Dropout(0.3),
-        tf.keras.layers.LSTM(16),
-        tf.keras.layers.Dense(HORIZON)
-    ])
-    return model
-
 try:
-    model = build_model()
-    model.load_weights(WEIGHTS_PATH)
+
+    print(f"BASE_DIR: {BASE_DIR}")
+    print(f"MODEL_PATH: {MODEL_PATH}")
+    print(f"SCALER_PATH: {SCALER_PATH}")
+
+    if not MODEL_PATH.exists():
+        raise FileNotFoundError(f"Modelo não encontrado em: {MODEL_PATH}")
+
+    if not SCALER_PATH.exists():
+        raise FileNotFoundError(f"Scaler não encontrado em: {SCALER_PATH}")
+
+    model = load_model(MODEL_PATH)
+
     scaler = joblib.load(SCALER_PATH)
+
+    print("Modelo e scaler carregados com sucesso")
+
 except Exception as e:
+
+    print(f"ERRO ao carregar modelo/scaler: {e}")
+
     raise RuntimeError(f"Erro ao carregar modelo ou scaler: {e}")
 
 # ======================
@@ -73,16 +83,12 @@ def predict(request: PredictionRequest):
     except Exception:
         raise HTTPException(status_code=400, detail="Valores inválidos.")
 
-    # Normalizar
     input_scaled = scaler.transform(input_array)
 
-    # Ajustar shape para LSTM
     input_scaled = input_scaled.reshape(1, LOOKBACK, 1)
 
-    # Previsão
     prediction_scaled = model.predict(input_scaled)
 
-    # Desnormalizar
     prediction = scaler.inverse_transform(
         prediction_scaled.reshape(-1, 1)
     ).flatten()
