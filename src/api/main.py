@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field
 from typing import List
 import numpy as np
 import joblib
-from tensorflow.keras.models import load_model
+import tensorflow as tf
 from pathlib import Path
 import time
 import logging
@@ -21,7 +21,7 @@ LOOKBACK = 60
 HORIZON = 30
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
-MODEL_PATH = BASE_DIR / "models" / "model.keras"
+WEIGHTS_PATH = BASE_DIR / "models" / "model.weights.h5"
 SCALER_PATH = BASE_DIR / "models" / "scaler.pkl"
 
 # ======================
@@ -36,15 +36,29 @@ model = None
 scaler = None
 
 # ======================
+# Construção do modelo
+# ======================
+def build_model():
+    model = tf.keras.Sequential([
+        tf.keras.layers.Input(shape=(LOOKBACK, 1)),
+        tf.keras.layers.LSTM(32, return_sequences=True),
+        tf.keras.layers.Dropout(0.3),
+        tf.keras.layers.LSTM(16),
+        tf.keras.layers.Dense(HORIZON)
+    ])
+    return model
+
+# ======================
 # Startup
 # ======================
 @app.on_event("startup")
 def load_artifacts():
     global model, scaler
     try:
-        model = load_model(MODEL_PATH)
+        model = build_model()
+        model.load_weights(WEIGHTS_PATH)
         scaler = joblib.load(SCALER_PATH)
-        logger.info("Modelo e scaler carregados com sucesso.")
+        logger.info("Modelo (weights) e scaler carregados com sucesso.")
     except Exception as e:
         logger.error(f"Erro no startup: {e}")
         raise e
@@ -86,7 +100,7 @@ def predict(request: PredictionRequest):
         input_scaled = scaler.transform(input_array)
         input_scaled = input_scaled.reshape(1, LOOKBACK, 1)
 
-        prediction_scaled = model.predict(input_scaled)
+        prediction_scaled = model.predict(input_scaled, verbose=0)
 
         latency = time.time() - start_time
 

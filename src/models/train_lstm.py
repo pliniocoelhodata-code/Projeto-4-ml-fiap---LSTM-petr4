@@ -18,7 +18,6 @@ BATCH_SIZE = 32
 MODEL_DIR = Path("models")
 MODEL_DIR.mkdir(exist_ok=True)
 
-MODEL_PATH = MODEL_DIR / "model.keras"
 WEIGHTS_PATH = MODEL_DIR / "model.weights.h5"
 METADATA_PATH = MODEL_DIR / "metadata.json"
 
@@ -28,14 +27,19 @@ METADATA_PATH = MODEL_DIR / "metadata.json"
 X_train, y_train, X_val, y_val, X_test, y_test = preprocess_pipeline()
 
 # ======================
-# Modelo
+# Construção do modelo
 # ======================
-model = Sequential([
-    LSTM(32, return_sequences=True, input_shape=(60, 1)),
-    Dropout(0.3),
-    LSTM(16),
-    Dense(30)
-])
+def build_model():
+    model = Sequential([
+        tf.keras.layers.Input(shape=(60, 1)),
+        LSTM(32, return_sequences=True),
+        Dropout(0.3),
+        LSTM(16),
+        Dense(30)
+    ])
+    return model
+
+model = build_model()
 
 model.compile(
     optimizer="adam",
@@ -59,12 +63,6 @@ callbacks = [
         monitor="val_loss",
         save_best_only=True,
         save_weights_only=True
-    ),
-    ModelCheckpoint(
-        str(MODEL_PATH),
-        monitor="val_loss",
-        save_best_only=True,
-        save_weights_only=False
     )
 ]
 
@@ -85,11 +83,9 @@ history = model.fit(
 # ======================
 y_pred = model.predict(X_test)
 
-# Primeiro passo do horizonte
 y_true_1 = y_test[:, 0]
 y_pred_1 = y_pred[:, 0]
 
-# Métricas
 mae = np.mean(np.abs(y_true_1 - y_pred_1))
 rmse = np.sqrt(np.mean((y_true_1 - y_pred_1) ** 2))
 mape = np.mean(np.abs((y_true_1 - y_pred_1) / (y_true_1 + 1e-8))) * 100
@@ -99,7 +95,7 @@ print(f"RMSE (t+1): {rmse:.4f}")
 print(f"MAPE (t+1): {mape:.2f}%")
 
 # ======================
-# Baseline simples (último valor)
+# Baseline simples
 # ======================
 baseline_pred = X_test[:, -1, 0]
 baseline_mae = np.mean(np.abs(y_true_1 - baseline_pred))
