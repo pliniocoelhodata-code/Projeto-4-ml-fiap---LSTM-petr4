@@ -4,7 +4,8 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense, Dropout
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 from pathlib import Path
-import joblib
+import json
+from datetime import datetime
 
 from src.data.preprocess import preprocess_pipeline
 
@@ -14,20 +15,17 @@ from src.data.preprocess import preprocess_pipeline
 EPOCHS = 50
 BATCH_SIZE = 32
 
-WEIGHTS_PATH = "models/lstm_petr4.weights.h5"
-MODEL_PATH = "models/lstm_petr4.keras"
+MODEL_DIR = Path("models")
+MODEL_DIR.mkdir(exist_ok=True)
 
-# ======================
-# Criar pasta models
-# ======================
-Path("models").mkdir(exist_ok=True)
+MODEL_PATH = MODEL_DIR / "model.keras"
+WEIGHTS_PATH = MODEL_DIR / "model.weights.h5"
+METADATA_PATH = MODEL_DIR / "metadata.json"
 
 # ======================
 # Carregar dados
 # ======================
 X_train, y_train, X_val, y_val, X_test, y_test = preprocess_pipeline()
-
-# IMPORTANTE: ajuste o preprocess_pipeline para retornar o scaler também
 
 # ======================
 # Modelo
@@ -56,18 +54,14 @@ callbacks = [
         patience=8,
         restore_best_weights=True
     ),
-
-    # checkpoint de pesos (opcional)
     ModelCheckpoint(
-        WEIGHTS_PATH,
+        str(WEIGHTS_PATH),
         monitor="val_loss",
         save_best_only=True,
         save_weights_only=True
     ),
-
-    # checkpoint do modelo completo (RECOMENDADO)
     ModelCheckpoint(
-        MODEL_PATH,
+        str(MODEL_PATH),
         monitor="val_loss",
         save_best_only=True,
         save_weights_only=False
@@ -87,17 +81,48 @@ history = model.fit(
 )
 
 # ======================
-# Garantir salvamento final
-# ======================
-
-model.save("models/lstm_petr4", save_format="tf")
-
-
-
-# ======================
 # Avaliação
 # ======================
-test_loss, test_mae = model.evaluate(X_test, y_test)
+y_pred = model.predict(X_test)
 
-print(f"Test MAE: {test_mae:.4f}")
-print(f"Test MSE: {test_loss:.4f}")
+# Primeiro passo do horizonte
+y_true_1 = y_test[:, 0]
+y_pred_1 = y_pred[:, 0]
+
+# Métricas
+mae = np.mean(np.abs(y_true_1 - y_pred_1))
+rmse = np.sqrt(np.mean((y_true_1 - y_pred_1) ** 2))
+mape = np.mean(np.abs((y_true_1 - y_pred_1) / (y_true_1 + 1e-8))) * 100
+
+print(f"MAE (t+1): {mae:.4f}")
+print(f"RMSE (t+1): {rmse:.4f}")
+print(f"MAPE (t+1): {mape:.2f}%")
+
+# ======================
+# Baseline simples (último valor)
+# ======================
+baseline_pred = X_test[:, -1, 0]
+baseline_mae = np.mean(np.abs(y_true_1 - baseline_pred))
+
+print(f"Baseline MAE (último valor): {baseline_mae:.4f}")
+
+# ======================
+# Salvar metadata
+# ======================
+metadata = {
+    "model_type": "LSTM",
+    "lookback": 60,
+    "horizon": 30,
+    "date_trained": datetime.now().isoformat(),
+    "metrics": {
+        "mae": float(mae),
+        "rmse": float(rmse),
+        "mape": float(mape),
+        "baseline_mae": float(baseline_mae)
+    }
+}
+
+with open(METADATA_PATH, "w") as f:
+    json.dump(metadata, f, indent=4)
+
+print("Metadata salva com sucesso.")

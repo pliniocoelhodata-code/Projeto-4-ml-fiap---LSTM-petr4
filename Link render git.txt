@@ -1,0 +1,2 @@
+https://petr4-lstm-api.onrender.com/docs
+https://github.com/pliniocoelhodata-code/Projeto-4-ml-fiap---LSTM-petr4/tree/main
