@@ -42,6 +42,13 @@ Thumbs.db
 .idea/
 
 # =========================
+# Arquivos compactados (não versionar)
+# =========================
+*.zip
+*.rar
+*.7z
+
+# =========================
 # Arquivos temporários
 # =========================
 *.tmp
