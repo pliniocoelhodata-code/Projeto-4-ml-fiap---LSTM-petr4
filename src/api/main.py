@@ -7,6 +7,7 @@ import tensorflow as tf
 from pathlib import Path
 import time
 import logging
+from tensorflow.keras.models import load_model
 
 # ======================
 # Logging estruturado
@@ -21,6 +22,7 @@ LOOKBACK = 60
 HORIZON = 30
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+MODEL_PATH = BASE_DIR / "models" / "model.keras"
 WEIGHTS_PATH = BASE_DIR / "models" / "model.weights.h5"
 SCALER_PATH = BASE_DIR / "models" / "scaler.pkl"
 
@@ -55,10 +57,9 @@ def build_model():
 def load_artifacts():
     global model, scaler
     try:
-        model = build_model()
-        model.load_weights(WEIGHTS_PATH)
+        model = load_model(MODEL_PATH)
         scaler = joblib.load(SCALER_PATH)
-        logger.info("Modelo (weights) e scaler carregados com sucesso.")
+        logger.info("Modelo (.keras) e scaler carregados com sucesso.")
     except Exception as e:
         logger.error(f"Erro no startup: {e}")
         raise e

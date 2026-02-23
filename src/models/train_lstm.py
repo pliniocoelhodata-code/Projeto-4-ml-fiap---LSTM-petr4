@@ -18,7 +18,7 @@ BATCH_SIZE = 32
 MODEL_DIR = Path("models")
 MODEL_DIR.mkdir(exist_ok=True)
 
-WEIGHTS_PATH = MODEL_DIR / "model.weights.h5"
+MODEL_PATH = MODEL_DIR / "model.keras"
 METADATA_PATH = MODEL_DIR / "metadata.json"
 
 # ======================
@@ -59,10 +59,10 @@ callbacks = [
         restore_best_weights=True
     ),
     ModelCheckpoint(
-        str(WEIGHTS_PATH),
+        str(MODEL_PATH),
         monitor="val_loss",
         save_best_only=True,
-        save_weights_only=True
+        save_weights_only=False
     )
 ]
 
@@ -77,6 +77,9 @@ history = model.fit(
     batch_size=BATCH_SIZE,
     callbacks=callbacks
 )
+
+# GARANTIR que o modelo completo seja salvo
+model.save(MODEL_PATH)
 
 # ======================
 # Avaliação
