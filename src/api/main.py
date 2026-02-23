@@ -22,7 +22,7 @@ LOOKBACK = 60
 HORIZON = 30
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
-MODEL_PATH = BASE_DIR / "models" / "model.keras"
+MODEL_PATH = BASE_DIR / "models" / "saved_model"
 WEIGHTS_PATH = BASE_DIR / "models" / "model.weights.h5"
 SCALER_PATH = BASE_DIR / "models" / "scaler.pkl"
 

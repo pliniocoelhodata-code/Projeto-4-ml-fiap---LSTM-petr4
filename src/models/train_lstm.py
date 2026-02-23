@@ -72,7 +72,8 @@ history = model.fit(
 )
 
 # GARANTIR que o modelo completo seja salvo
-model.save(MODEL_PATH)
+
+model.save(MODEL_DIR / "saved_model", save_format="tf")
 
 # ======================
 # Avaliação
