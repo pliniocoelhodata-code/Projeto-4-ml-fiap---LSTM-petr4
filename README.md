@@ -27,7 +27,7 @@ ação PETR4 utilizando Deep Learning (LSTM), com:
     │   └── api/
     │
     ├── models/
-    │   ├── model.keras
+    │   ├── saved_model
     │   ├── scaler.pkl
     │   └── metadata.json
     │
