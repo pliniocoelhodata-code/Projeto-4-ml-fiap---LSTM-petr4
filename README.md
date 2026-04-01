@@ -1,146 +1,198 @@
-# 📈 PETR4 LSTM Forecast API
+# PETR4 LSTM Forecast API
 
-API de previsão de preços da ação **PETR4.SA** utilizando rede neural
-LSTM.
+API de previsao para a acao `PETR4.SA` usando `FastAPI` e um modelo `LSTM` treinado com `TensorFlow`.
 
-------------------------------------------------------------------------
+Este projeto foi montado para demonstrar um fluxo completo de machine learning aplicado:
 
-# 🧠 Objetivo
+- coleta de dados com `yfinance`
+- preprocessamento para series temporais
+- treinamento de uma rede `LSTM`
+- persistencia de artefatos do modelo
+- exposicao da inferencia por API
+- empacotamento com Docker
+- deploy local com Docker Compose
+- validacao automatizada com CI
+- publicacao automatica da imagem com CD
 
-Desenvolver um sistema de previsão de séries temporais para o preço da
-ação PETR4 utilizando Deep Learning (LSTM), com:
+## Destaques Para Portfolio
 
--   Separação adequada de treino / validação / teste (time-series split)
--   Avaliação formal do modelo
--   Comparação com baseline simples
--   Versionamento de modelo
--   API versionada
--   Monitoramento básico de latência
+- problema real de negocio: previsao de preco de acao
+- stack moderna de API + ML serving
+- separacao entre pipeline de treino e camada de inferencia
+- artefatos prontos para containerizacao e demonstracao
+- pipeline simples de CI para validar codigo e build
+- entrega automatica da imagem no GitHub Container Registry
 
-------------------------------------------------------------------------
+## Arquitetura
 
-# 📂 Estrutura do Projeto
+Fluxo principal:
 
-    ├── src/
-    │   ├── data/
-    │   ├── models/
-    │   └── api/
-    │
-    ├── models/
-    │   ├── saved_model/
-    │   ├── scaler.pkl
-    │   └── metadata.json
-    │
-    ├── requirements.txt
-    ├── render.yaml
-    └── README.md
+`yfinance -> CSV bruto -> preprocessamento -> treino LSTM -> models/saved_model + scaler.pkl -> FastAPI -> endpoint /v1/predict`
 
-------------------------------------------------------------------------
+## Estrutura Do Projeto
 
-# 🔄 Pipeline
-
-## 1️⃣ Coleta de dados
-
-Dados históricos obtidos via `yfinance` (ticker PETR4.SA).
-
-## 2️⃣ Pré-processamento
-
--   Normalização com MinMaxScaler
--   Lookback: 60 dias
--   Horizon: 30 dias
--   Time-series split (sem leakage)
-
-## 3️⃣ Modelo LSTM
-
-Arquitetura:
-
-    LSTM(32, return_sequences=True)
-    Dropout(0.3)
-    LSTM(16)
-    Dense(30)
-
-Loss: MSE\
-Métrica: MAE\
-EarlyStopping com restore_best_weights=True
-
-Modelo salvo em:
-
-    models/model.keras
-
-------------------------------------------------------------------------
-
-# 📊 Avaliação
-
-Métricas utilizadas:
-
--   MAE
--   RMSE
--   MAPE
--   Baseline MAE (último valor)
-
-Exemplo:
-
-MAE (t+1): 0.64\
-RMSE (t+1): 0.65\
-MAPE (t+1): 36.8%\
-Baseline MAE: 0.10
-
-------------------------------------------------------------------------
-
-# 🚀 API
-
-Endpoint:
-
-POST `/v1/predict`
-
-Payload:
-
-``` json
-{
-  "last_60_days": [ ... 60 valores ... ]
-}
+```text
+.
+|-- Dockerfile
+|-- docker-compose.yaml
+|-- models/
+|   |-- metadata.json
+|   |-- saved_model/
+|   `-- scaler.pkl
+|-- render.yaml
+|-- requirements.txt
+|-- tests/
+|   `-- test_api.py
+`-- src/
+    |-- api/
+    |   `-- main.py
+    |-- data/
+    |   |-- collect_data.py
+    |   `-- preprocess.py
+    `-- models/
+        `-- train_lstm.py
 ```
 
-Resposta:
+## Como Rodar Localmente
 
-``` json
-{
-  "prediction_30_days": [...],
-  "latency_seconds": 1.38
-}
-```
+### 1. Ambiente Python
 
-Monitoramento implementado: - Logging estruturado - Medição de
-latência - Log de eventos e erros
-
-------------------------------------------------------------------------
-
-# 🛠️ Execução Local
-
-Instalar dependências:
-
+```bash
+python -m venv .venv
+.venv\Scripts\activate
 pip install -r requirements.txt
+```
 
-Treinar modelo:
+### 2. Subir A API
 
+O projeto ja possui artefatos versionados em `models/`, entao a API pode ser iniciada sem novo treinamento:
+
+```bash
+uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+Acesse:
+
+- Swagger UI: `http://127.0.0.1:8000/docs`
+- Health check: `http://127.0.0.1:8000/`
+
+### 3. Exemplo De Requisicao
+
+```json
+{
+  "last_60_days": [
+    32.1, 32.5, 32.4, 32.7, 32.6, 32.9, 33.0, 33.2, 33.1, 33.4,
+    33.5, 33.6, 33.7, 33.8, 33.9, 34.0, 34.1, 34.2, 34.0, 33.9,
+    34.1, 34.2, 34.4, 34.3, 34.5, 34.6, 34.8, 34.7, 34.9, 35.0,
+    35.1, 35.2, 35.0, 35.3, 35.5, 35.4, 35.6, 35.7, 35.8, 35.9,
+    36.0, 36.1, 36.2, 36.0, 36.3, 36.5, 36.4, 36.6, 36.8, 36.7,
+    36.9, 37.0, 37.1, 37.2, 37.0, 37.3, 37.4, 37.5, 37.6, 37.7
+  ]
+}
+```
+
+Resposta esperada:
+
+```json
+{
+  "prediction_30_days": [35.8, 35.9, 36.0],
+  "latency_seconds": 0.42
+}
+```
+
+## Pipeline De Treinamento
+
+O treino e separado da API.
+
+### 1. Coletar dados
+
+```bash
+python src/data/collect_data.py
+```
+
+Isso gera o arquivo `data/raw/petr4_raw.csv`.
+
+### 2. Treinar o modelo
+
+```bash
 python -m src.models.train_lstm
+```
 
-Subir API:
+Ao final do processo, os artefatos relevantes sao:
 
-uvicorn src.api.main:app --reload
+- `models/saved_model/`
+- `models/scaler.pkl`
+- `models/metadata.json`
 
-Acessar: http://127.0.0.1:8000/docs
+## Docker
 
-------------------------------------------------------------------------
+### Build da imagem
 
-# 🌍 Deploy
+```bash
+docker build -t petr4-lstm-api:latest .
+```
 
-Deploy realizado na plataforma Render.
+### Rodar o container
 
-https://petr4-lstm-api.onrender.com/docs
+```bash
+docker run --rm -p 8000:8000 petr4-lstm-api:latest
+```
 
-------------------------------------------------------------------------
+## Docker Compose
 
-# 👨‍💻 Autor
+Para subir o servico localmente com um comando:
+
+```bash
+docker compose up --build
+```
+
+O Compose faz mais sentido aqui quando o objetivo e:
+
+- demonstrar reproducao local rapida
+- facilitar avaliacao por recrutadores e entrevistadores
+- preparar terreno para adicionar mais servicos no futuro
+
+## CI
+
+O projeto agora inclui workflow de GitHub Actions em `.github/workflows/ci.yml` com:
+
+- instalacao de dependencias
+- compilacao do codigo Python
+- teste basico da API
+- build da imagem Docker
+
+## CD
+
+O projeto tambem inclui workflow de GitHub Actions em `.github/workflows/cd.yml` para publicar a imagem no `ghcr.io`.
+
+Esse workflow:
+
+- roda em push para `main` ou `master`
+- aceita execucao manual
+- gera tags de branch, tag Git e SHA do commit
+- publica a imagem `ghcr.io/<usuario-ou-org>/petr4-lstm-api`
+
+Pre-requisitos no GitHub:
+
+- manter o repositrio hospedado no GitHub
+- permitir GitHub Actions com permissao para escrever em packages
+
+Esse fluxo e mais coerente com o tamanho atual do projeto do que manter um manifesto Kubernetes sem necessidade real de orquestracao.
+
+## Endpoint Disponivel
+
+- `GET /`
+- `POST /v1/predict`
+
+Deploy publico atual:
+
+- `https://petr4-lstm-api.onrender.com/docs`
+
+## Melhorias Futuras
+
+- adicionar testes automatizados da API
+- adicionar monitoramento e metricas
+
+## Autor
 
 Plinio Coelho

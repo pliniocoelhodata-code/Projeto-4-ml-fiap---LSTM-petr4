@@ -1,0 +1,18 @@
+.git
+.gitignore
+.venv
+venv
+venv310
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.vscode/
+.idea/
+data/
+*.csv
+*.ipynb
+*.log
+README.md
+render.yaml
+Link render git.txt

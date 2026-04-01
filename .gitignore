@@ -9,6 +9,7 @@ venv310/
 # Cache Python
 # =========================
 __pycache__/
+.pytest_cache/
 *.pyc
 *.pyo
 *.pyd
