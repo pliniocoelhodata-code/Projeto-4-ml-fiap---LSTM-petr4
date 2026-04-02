@@ -36,3 +36,46 @@ jobs:
 
       - name: Build Docker image
         run: docker build -t petr4-lstm-api:ci .
+
+      - name: Start container for smoke test
+        run: docker run -d --name petr4-lstm-api-smoke -p 8000:8000 petr4-lstm-api:ci
+
+      - name: Wait for API to become healthy
+        run: |
+          for i in {1..12}; do
+            if curl -fsS http://127.0.0.1:8000/; then
+              exit 0
+            fi
+            sleep 5
+          done
+          docker logs petr4-lstm-api-smoke
+          exit 1
+
+      - name: Smoke test prediction endpoint
+        run: |
+          python - <<'PY'
+          import json
+          import urllib.request
+
+          payload = json.dumps({"last_60_days": [30.0] * 60}).encode()
+          request = urllib.request.Request(
+              "http://127.0.0.1:8000/v1/predict",
+              data=payload,
+              headers={"Content-Type": "application/json"},
+              method="POST",
+          )
+
+          with urllib.request.urlopen(request, timeout=30) as response:
+              body = json.loads(response.read().decode())
+
+          assert len(body["prediction_30_days"]) == 30
+          assert "latency_seconds" in body
+          PY
+
+      - name: Show container logs on failure
+        if: failure()
+        run: docker logs petr4-lstm-api-smoke
+
+      - name: Stop smoke test container
+        if: always()
+        run: docker rm -f petr4-lstm-api-smoke
