@@ -1,3 +1,5 @@
+import numpy as np
+
 from fastapi.testclient import TestClient
 
 from src.api import main
@@ -48,7 +50,7 @@ def test_predict_returns_expected_response_shape(monkeypatch):
 
     class DummyModel:
         def predict(self, values, verbose=0):
-            return [[float(index) for index in range(30)]]
+            return np.array([[float(index) for index in range(30)]])
 
     monkeypatch.setattr(main, "scaler", DummyScaler())
     monkeypatch.setattr(main, "model", DummyModel())
