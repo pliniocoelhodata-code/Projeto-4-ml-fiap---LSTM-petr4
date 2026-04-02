@@ -74,8 +74,16 @@ jobs:
 
       - name: Show container logs on failure
         if: failure()
-        run: docker logs petr4-lstm-api-smoke
+        run: |
+          if docker ps -a --format '{{.Names}}' | grep -q '^petr4-lstm-api-smoke$'; then
+            docker logs petr4-lstm-api-smoke
+          else
+            echo "Container petr4-lstm-api-smoke was not created."
+          fi
 
       - name: Stop smoke test container
         if: always()
-        run: docker rm -f petr4-lstm-api-smoke
+        run: |
+          if docker ps -a --format '{{.Names}}' | grep -q '^petr4-lstm-api-smoke$'; then
+            docker rm -f petr4-lstm-api-smoke
+          fi
