@@ -1,38 +1,41 @@
 # PETR4 LSTM Forecast API
 
+[![CI](https://github.com/pliniocoelhodata-code/Projeto-4-ml-fiap---LSTM-petr4/actions/workflows/ci.yml/badge.svg)](https://github.com/pliniocoelhodata-code/Projeto-4-ml-fiap---LSTM-petr4/actions/workflows/ci.yml)
+[![CD](https://github.com/pliniocoelhodata-code/Projeto-4-ml-fiap---LSTM-petr4/actions/workflows/cd.yml/badge.svg)](https://github.com/pliniocoelhodata-code/Projeto-4-ml-fiap---LSTM-petr4/actions/workflows/cd.yml)
+
 API de previsao para a acao `PETR4.SA` usando `FastAPI` e um modelo `LSTM` treinado com `TensorFlow`.
 
-Este projeto foi montado para demonstrar um fluxo completo de machine learning aplicado:
+O projeto demonstra um fluxo completo de ML aplicado:
 
-- coleta de dados com `yfinance`
-- preprocessamento para series temporais
-- treinamento de uma rede `LSTM`
-- persistencia de artefatos do modelo
-- exposicao da inferencia por API
-- empacotamento com Docker
-- deploy local com Docker Compose
+- coleta e preprocessamento de dados de series temporais
+- treinamento e persistencia de artefatos do modelo
+- serving de inferencia com `FastAPI`
+- containerizacao com Docker
+- execucao local com Docker Compose
 - validacao automatizada com CI
-- publicacao automatica da imagem com CD
+- publicacao automatica da imagem no `ghcr.io`
 
-## Destaques Para Portfolio
+## Destaques
 
 - problema real de negocio: previsao de preco de acao
-- stack moderna de API + ML serving
 - separacao entre pipeline de treino e camada de inferencia
-- artefatos prontos para containerizacao e demonstracao
-- pipeline simples de CI para validar codigo e build
-- entrega automatica da imagem no GitHub Container Registry
+- modelo e scaler versionados no repositorio
+- testes de API, integracao e smoke test em container
+- pipeline de CI/CD simples e facil de explicar
 
 ## Arquitetura
 
 Fluxo principal:
 
-`yfinance -> CSV bruto -> preprocessamento -> treino LSTM -> models/saved_model + scaler.pkl -> FastAPI -> endpoint /v1/predict`
+`yfinance -> CSV bruto -> preprocessamento -> treino LSTM -> models/saved_model + scaler.pkl -> FastAPI -> /v1/predict`
 
 ## Estrutura Do Projeto
 
 ```text
 .
+|-- .github/workflows/
+|   |-- cd.yml
+|   `-- ci.yml
 |-- Dockerfile
 |-- docker-compose.yaml
 |-- models/
@@ -55,28 +58,28 @@ Fluxo principal:
 
 ## Como Rodar Localmente
 
-### 1. Ambiente Python
+### Opcao 1. Python
 
 ```bash
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
-```
-
-### 2. Subir A API
-
-O projeto ja possui artefatos versionados em `models/`, entao a API pode ser iniciada sem novo treinamento:
-
-```bash
 uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-Acesse:
+### Opcao 2. Docker Compose
+
+```bash
+docker compose up --build
+```
+
+### Endpoints
 
 - Swagger UI: `http://127.0.0.1:8000/docs`
 - Health check: `http://127.0.0.1:8000/`
+- Predicao: `POST /v1/predict`
 
-### 3. Exemplo De Requisicao
+### Exemplo De Requisicao
 
 ```json
 {
@@ -110,7 +113,7 @@ O treino e separado da API.
 python src/data/collect_data.py
 ```
 
-Isso gera o arquivo `data/raw/petr4_raw.csv`.
+Gera o arquivo `data/raw/petr4_raw.csv`.
 
 ### 2. Treinar o modelo
 
@@ -118,7 +121,7 @@ Isso gera o arquivo `data/raw/petr4_raw.csv`.
 python -m src.models.train_lstm
 ```
 
-Ao final do processo, os artefatos relevantes sao:
+Artefatos gerados:
 
 - `models/saved_model/`
 - `models/scaler.pkl`
@@ -126,72 +129,75 @@ Ao final do processo, os artefatos relevantes sao:
 
 ## Docker
 
-### Build da imagem
+### Build local
 
 ```bash
 docker build -t petr4-lstm-api:latest .
 ```
 
-### Rodar o container
+### Executar localmente
 
 ```bash
 docker run --rm -p 8000:8000 petr4-lstm-api:latest
 ```
 
-## Docker Compose
+## Imagem Publicada No GHCR
 
-Para subir o servico localmente com um comando:
+O workflow de CD publica a imagem em:
 
-```bash
-docker compose up --build
+```text
+ghcr.io/pliniocoelhodata-code/petr4-lstm-api
 ```
 
-O Compose faz mais sentido aqui quando o objetivo e:
+Exemplo de uso:
 
-- demonstrar reproducao local rapida
-- facilitar avaliacao por recrutadores e entrevistadores
-- preparar terreno para adicionar mais servicos no futuro
+```bash
+docker pull ghcr.io/pliniocoelhodata-code/petr4-lstm-api:latest
+docker run --rm -p 8000:8000 ghcr.io/pliniocoelhodata-code/petr4-lstm-api:latest
+```
 
-## CI
+Tags geradas pelo CD:
 
-O projeto agora inclui workflow de GitHub Actions em `.github/workflows/ci.yml` com:
+- `latest` na branch padrao
+- nome da branch
+- tag Git, como `v1.0.0`
+- SHA do commit
 
-- instalacao de dependencias
-- compilacao do codigo Python
-- teste basico da API
+## CI E CD
+
+### CI
+
+O workflow em `.github/workflows/ci.yml` executa:
+
+- instalacao de dependencias Python
+- compilacao do codigo
+- testes da API com `pytest`
+- teste de integracao com artefatos reais
 - build da imagem Docker
+- smoke test da API rodando em container
 
-## CD
+### CD
 
-O projeto tambem inclui workflow de GitHub Actions em `.github/workflows/cd.yml` para publicar a imagem no `ghcr.io`.
-
-Esse workflow:
+O workflow em `.github/workflows/cd.yml`:
 
 - roda em push para `main` ou `master`
 - aceita execucao manual
-- gera tags de branch, tag Git e SHA do commit
-- publica a imagem `ghcr.io/<usuario-ou-org>/petr4-lstm-api`
+- gera tags automaticamente
+- publica a imagem no GitHub Container Registry
 
-Pre-requisitos no GitHub:
+Pre-requisito no GitHub:
 
-- manter o repositrio hospedado no GitHub
-- permitir GitHub Actions com permissao para escrever em packages
+- GitHub Actions com permissao de escrita em packages
 
-Esse fluxo e mais coerente com o tamanho atual do projeto do que manter um manifesto Kubernetes sem necessidade real de orquestracao.
-
-## Endpoint Disponivel
-
-- `GET /`
-- `POST /v1/predict`
-
-Deploy publico atual:
+## Deploy Publico
 
 - `https://petr4-lstm-api.onrender.com/docs`
 
 ## Melhorias Futuras
 
-- adicionar testes automatizados da API
+- ampliar cobertura de testes da API
 - adicionar monitoramento e metricas
+- incluir badges adicionais de pacote ou deploy, se fizer sentido
 
 ## Autor
 
